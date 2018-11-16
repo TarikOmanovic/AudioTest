@@ -59,8 +59,8 @@ main()
 	for (i = 0; i < 88200; ++i)
 	{
 		/* Just fill the stream with sine! */
-		uint32_t left = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosLeft)) + (UINT16_MAX / 2)) << 16;
-		uint32_t right = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosRight)) + (UINT16_MAX / 2));
+		uint32_t left = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosLeft))) << 16;
+		uint32_t right = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosRight)));
 		vecWav.push_back(left | right);
 		sinPosLeft += sinStepLeft;
 		sinPosRight += sinStepRight;
