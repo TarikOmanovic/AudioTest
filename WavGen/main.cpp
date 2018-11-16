@@ -48,24 +48,29 @@ main()
 
 	
 	int i;
-	double sinPos = 0.0;
-	double toneFreq = 100.0;
-	double sinStep = 2 * M_PI * toneFreq / SampleRate;
+	double sinPosLeft = 0.0;
+	double sinPosRight = 0.0;
+	double toneFreqLeft = 100.0;
+	double toneFreqRight = 440.0;
+	double sinStepLeft = 2 * M_PI * toneFreqLeft / SampleRate;
+	double sinStepRight = 2 * M_PI * toneFreqRight / SampleRate;
 	vector<uint32_t> vecWav;
 
 	for (i = 0; i < 88200; ++i)
 	{
 		/* Just fill the stream with sine! */
-		uint32_t left = (uint32_t)(((UINT16_MAX / 2) * sin(sinPos)) + (UINT16_MAX / 2)) << 16;
-		uint32_t right = (uint32_t)(((UINT16_MAX / 2) * sin(sinPos)) + (UINT16_MAX / 2));
+		uint32_t left = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosLeft)) + (UINT16_MAX / 2)) << 16;
+		uint32_t right = (uint32_t)(((UINT16_MAX / 2) * sin(sinPosRight)) + (UINT16_MAX / 2));
 		vecWav.push_back(left | right);
-		sinPos += sinStep;
+		sinPosLeft += sinStepLeft;
+		sinPosRight += sinStepRight;
 	}
 
 	
 
 
 	ofstream out("./example.wav", ios::out | ios::binary);
+	ofstream outData("./data.txt", ios::out);
 	out.write((char*)&ChunkID, 4);
 	out.write((char*)&ChunkSize, 4);
 	out.write((char*)&Format, 4);
@@ -78,7 +83,8 @@ main()
 	out.write((char*)&DataChunkID, 4);
 	out.write((char*)&DataChunkSize, 4);
 
-	for (const auto &e : vecWav) out << e;
+	for (const auto &e : vecWav) out.write((char*)&e, 4);
+	for (const auto &e : vecWav) outData << e;
 
 
 
