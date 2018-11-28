@@ -43,13 +43,16 @@ uint32_t BlockAlignAndBitsPerSample = ((BitsPerSample << 16) | BlockAlign);
 uint32_t DataChunkID = _byteswap_ulong(0x64617461);
 uint32_t DataChunkSize;
 
-
 void
-simpleTone(
+tone(
 	vector<int16_t>& vec,
 	double durationSec,
-	double frequencyHz,
-	double volumeScale);
+	double frequencyHzBeg,
+	double frequencyHzEnd,
+	double volumeScaleBeg,
+	double volumeScaleEnd,
+	void(*interpolationFreqCurve)(vector<double>& out, double fB, double fE, unsigned int numOfSamples),
+	void(*interpolationVolumeCurve)(vector<double>& out, double vB, double vE, unsigned int numOfSamples));
 
 void
 inverseHamronicTone(
@@ -67,17 +70,24 @@ linearHamronicTone(
 	double volumeScale,
 	unsigned int numHarmonics);
 
+void
+linearInterpolation(
+	vector<double>& out,
+	double b,
+	double e,
+	unsigned int numOfSamples);
+
 int
 main()
 {
 	vector<int16_t> chLeft;
 	vector<int16_t> chRight;
-	simpleTone(chLeft, 2.0, 440, 1);
-	simpleTone(chRight, 2.0, 440, 1);
-	inverseHamronicTone(chLeft, 2.0, 440, 1, 2);
-	inverseHamronicTone(chRight, 2.0, 440, 1, 2);
-	linearHamronicTone(chLeft, 2.0, 440, 1, 2);
-	linearHamronicTone(chRight, 2.0, 440, 1, 2);
+	
+	tone(chLeft, 4, 220, 880, 0, 0.5, linearInterpolation, linearInterpolation);
+	tone(chRight, 4, 220, 880, 0, 0.5, linearInterpolation, linearInterpolation);
+	tone(chLeft, 4, 880, 220, 0.5, 1, linearInterpolation, linearInterpolation);
+	tone(chRight, 4, 880, 220, 0.5, 1, linearInterpolation, linearInterpolation);
+	
 	   
 	DataChunkSize = NumChannels * sizeof(chLeft[0]) * chLeft.size();
 	ChunkSize = DataChunkSize + 36;
@@ -105,28 +115,58 @@ main()
 	return 0;
 }
 
+
+
 void
-simpleTone(
+tone(
 	vector<int16_t>& vec,
 	double durationSec,
-	double frequencyHz,
-	double volumeScale)
+	double frequencyHzBeg,
+	double frequencyHzEnd,
+	double volumeScaleBeg,
+	double volumeScaleEnd,
+	void(*interpolationFreqCurve)(vector<double>& out, double fB, double fE, unsigned int numOfSamples),
+	void(*interpolationVolumeCurve)(vector<double>& out, double vB, double vE, unsigned int numOfSamples)
+	)
 {
-	unsigned int i;
-	unsigned int numOfSamples = (unsigned int) (durationSec * SampleRate);
+	unsigned int numOfSamples = (unsigned int)(durationSec * SampleRate);
 
+	vector<double> frequencies;
+	vector<double> volumes;
+	interpolationFreqCurve(frequencies, frequencyHzBeg, frequencyHzEnd, numOfSamples);
+	interpolationVolumeCurve(volumes, volumeScaleBeg, volumeScaleEnd, numOfSamples);
+	
 	double sinPos = 0.0;
-	double sinStep = 2 * M_PI * frequencyHz / (double)SampleRate;
-
-	uint16_t val;
-
-	for (i = 0; i < numOfSamples; ++i)
+	for (unsigned int i = 0; i < numOfSamples; ++i)
 	{
-		val = (int16_t)(INT16_MAX * volumeScale * sin(sinPos));
-		vec.push_back(val);
-		sinPos += sinStep;
+		vec.push_back((int16_t)(INT16_MAX * volumes[i] * sin(sinPos)));
+		sinPos += 2 * M_PI * frequencies[i] / (double)SampleRate;
 	}
 }
+
+
+
+
+void
+linearInterpolation(
+	vector<double>& out,
+	double b,
+	double e,
+	unsigned int numOfSamples)
+{
+	double delta = (e - b) / numOfSamples;
+	for (unsigned int i = 0; i < numOfSamples; ++i)
+	{
+		out.push_back(b + (i * delta));
+	}
+}
+
+
+
+
+
+
+
 
 void
 inverseHamronicTone(
